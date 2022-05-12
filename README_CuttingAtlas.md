@@ -1,6 +1,6 @@
-# How does LUMIDATA work?
+# How does CuttingAtlas work?
 #### @GiuliaFaletti
-The LumiData allows the user to transform ATLAS ROOT lumi data into txt files, which store (or should store if you are downloading this project): 
+The CuttinAtlas software allows the user to transform ATLAS ROOT lumi data into txt files, which store (or should store if you are downloading this project): 
 1. **20{}**: ATLAS data of the considered year({16-17-18}) stored in ROOT files (named after the specific ATLAS run);
 2. **20{}Data**: Atlas data (***lb***-> luminosity block number; ***dt***-> luminosity block duration in seconds; ***nbx***-> number of colliding BCIDs; ***grl***-> good run list flag to reject bad ATLAS lumi block; ***\<current year algorithm name>***-> integrated luminoisty value evaluated with a specific algorithm for the LUCID detector; ***\<current year algorithm name>_err***-> errors on the previous measurements.) saved in txt files, named after the fill number to which they refer; 
 3. **OldData_and_Utilities**: Folder that stores old trials and data for the task;
