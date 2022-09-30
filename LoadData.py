@@ -5,7 +5,9 @@
 
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
+#old functions
 def Create_DataSet():
      """Reads the Excel file and creates the corret datasets.    
     Returns
@@ -145,7 +147,8 @@ def Data():
      array18 = np.array(data_18)
      
      return data_16, data_17, data_18, array16, array17, array18
-     
+ 
+#data needed for online strategy    
 def loadFill():
      """Reads the Excel file and creates the corret dataset lists.    
      Returns
@@ -183,7 +186,7 @@ def loadFill():
           data_tf17, data_ta18, data_tf18 
 
 def Data_sec(array16, data_ta16, data_tf16, array17, data_ta17, data_tf17, array18, data_ta18, data_tf18):
-     """Transform the data from seconds to hours.
+     """Transform the data from hours to seconds.
 
      Args:
          array16, array17, array18, data_ta16, data_tf16, data_ta17, data_tf17, data_ta18, data_tf18: array
@@ -229,11 +232,12 @@ def FillNumber():
      FillNumber18 = np.array(NrF_18)
      return FillNumber16, FillNumber17, FillNumber18
 
+#evaluating the measured total integrated luminosities
 def MeasuredLuminosity():
      """Evaluates the measured luminosity from ATLAS data.
 
      Returns:
-         L_mes16, L_mes17, L_mes18: Measured Luminosity in
+         L_mes16, L_mes17, L_mes18: Measured Luminosity in fb^-1
      """
      
      FillNumber16, FillNumber17, FillNumber18 = FillNumber()
@@ -271,11 +275,10 @@ def MeasuredLuminosity():
     
           L_mes18.append(result)   
      f.close()
-     L_mes18=np.array(L_mes18)/1e9 
+     L_mes18=np.array(L_mes18)/1e9  #from microbarn^-1 to fb^-1
      return L_mes16, L_mes17, L_mes18
-                       
-                       
-                       
+         
+#saving fill numbers in txt files --> needed for ATLAS Root files data extraction                                    
 def savingFillNumber_txt(year, FillNumber):
      """saving fill number arrays into txt files.
 
@@ -294,11 +297,244 @@ def savingFillNumber_txt(year, FillNumber):
                f.write('\n')
                f.close()
                
-
 #Script to save the FillNumbers in txt files
 #FillNumber16, FillNumber17, FillNumber18=FillNumber()
 #savingFillNumber_txt(16, FillNumber16)
 #savingFillNumber_txt(17, FillNumber17)
 #savingFillNumber_txt(18, FillNumber18)
        
-             
+#Loading New Atlas Data from Root Files
+def AtlasData(text, year, grl=True):
+     """
+     Function that sets the data extracted from Atlas ROOT files for them to be usable 
+     in optimization algorithms, allowing all data or only those with positive flags to
+     be selected in the good atlas run list.
+     Args:
+         text (str): current fill
+         year (int): current year
+         grl (bool, optional): flag for to reject bad atlas lumi block. Defaults to True.
+
+     Returns:
+         T (array): times in seconds
+         Li (array): istantaneous luminosity
+     """
+
+     #exctraction of data from txt files
+     f=open('LumiData/20{}Data/{}_Data.txt'.format(year, text),"r")
+     lines=f.readlines()
+     dt=[]
+     L=[]
+     G=[]
+     for x in lines:
+          g=float(x.split('\t')[3])
+          t=float(x.split('\t')[1])
+          l=float(x.split('\t')[4])
+          dt.append(t)
+          L.append(l)
+          G.append(g)
+          
+     #Evaluating the time in seconds
+     T=[]
+     t=dt[0]
+     T.append(t)
+     for i in range(1, len(dt)):
+          t=t+dt[i]
+          T.append(t) 
+     
+     #Evaluating the istantaneous luminosity
+     Li=[]
+     for i in range(len(dt)):
+          li=L[i]/dt[i]
+          Li.append(li)
+     #print(L, Li)
+     
+     T=np.array(T)
+     Li=np.array(Li)
+     #cutting bad atlas values
+     G=np.array(G)
+     if grl==True:
+          ind=np.where(G==0)[0]
+          T=np.delete(T, ind)
+          Li=np.delete(Li, ind)
+           
+     f.close()
+     
+     return  T, Li
+   
+#Script to plot new root data  
+#T, Li=AtlasData(5257, 17, grl=True)
+#T1, Li1=AtlasData(5017, 17, grl=False)
+#fig, ax=plt.subplots()
+#ax.plot(T, Li, "r.", markersize=4)
+#ax.plot(T1, Li1, "b.", markersize=3)
+#plt.show()
+
+def CuttedData(year, text):
+     """Function that read the saved cutted and fitted data from txt files.
+
+     Args:
+         year (int): current year
+         text (str): current fill
+
+     Returns:
+         Times (ndarray): times in second of the current fill
+         a[0],b[0],c[0],d[0]: fit coefficients
+     """
+     year=str(year)
+     f=open('Cutting_Fitting/20{}/{}.txt'.format(year, text),"r")
+     lines=f.readlines()
+     Times=[]
+     for x in lines:
+          Times.append(int(x.split(' ')[0]))  
+          
+     f.close()
+     Times = np.array(Times)
+     f1=open('Cutting_Fitting/FitCoefficients{}.txt'.format(year),"r")
+     lines1=f1.readlines()
+     a=0
+     b=0
+     c=0
+     d=0
+     for x1 in lines1:
+          if str(int(x1.split(' ')[0]))==text:
+               a=float(x1.split(' ')[1])
+               b=float(x1.split(' ')[2])
+               c=float(x1.split(' ')[3])
+               d=float(x1.split(' ')[4])
+          
+     f1.close()
+
+     
+     return Times, a,b,c,d
+
+#text=str(5017)
+#Times, a,b,c,d=CuttedData(16,text)
+#print(a,b,c,d)
+
+def CuttedNewData(year, text):
+
+     """Function that read the saved cutted and fitted new data from txt files.
+
+     Args:
+         year (int): current year
+         text (str): current fill
+
+     Returns:
+         Times (ndarray): times in second of the current fill
+         a[0],b[0],c[0],d[0]: fit coefficients
+     """
+     year=str(year)
+     f=open('Cutting_FittingNew/20{}/{}.txt'.format(year, text),"r")
+     lines=f.readlines()
+     Times=[]
+     for x in lines:
+          Times.append(float(x.split(' ')[0]))  
+          
+     f.close()
+     Times = np.array(Times)
+     f1=open('Cutting_FittingNew/FitCoefficients{}.txt'.format(year),"r")
+     lines1=f1.readlines()
+     a=0
+     b=0
+     c=0
+     d=0
+     for x1 in lines1:
+          if str(int(x1.split(' ')[0]))==text:
+               a=float(x1.split(' ')[1])
+               b=float(x1.split(' ')[2])
+               c=float(x1.split(' ')[3])
+               d=float(x1.split(' ')[4])
+          
+     f1.close()
+
+     
+     return Times, a,b,c,d
+
+
+def OldCuttedData(year, text):
+     """Function that read the saved cutted and fitted data from txt files.
+
+     Args:
+         year (int): current year
+         text (str): current fill
+
+     Returns:
+         Times (ndarray): times in second of the current fill
+         a[0],b[0],c[0],d[0]: fit coefficients
+     """
+     year=str(year)
+     f=open('Cutting_Fitting/20{}/{}.txt'.format(year, text),"r")
+     lines=f.readlines()
+     Times=[]
+     for x in lines:
+          Times.append(int(x.split(' ')[0]))  
+          
+     f.close()
+     Times = np.array(Times)
+     f1=open('Cutting_Fitting/FitCoefficients{}.txt'.format(year),"r")
+     lines1=f1.readlines()
+     a=0
+     b=0
+     c=0
+     d=0
+     for x1 in lines1:
+          if str(int(x1.split(' ')[0]))==text:
+               a=float(x1.split(' ')[1])
+               b=float(x1.split(' ')[2])
+               c=float(x1.split(' ')[3])
+               d=float(x1.split(' ')[4])
+          
+     f1.close()
+     
+     a=np.array(a)
+     b=np.array(b)
+     c=np.array(c)
+     d=np.array(d)
+     L=a*np.exp(-b*Times)+c*np.exp(-d*Times)
+     
+     return Times, L
+
+
+def AtlasCuttedData(year, text):
+
+     """Function that read the saved cutted and fitted new data from txt files.
+
+     Args:
+         year (int): current year
+         text (str): current fill
+
+     Returns:
+         Times (ndarray): times in second of the current fill
+         a[0],b[0],c[0],d[0]: fit coefficients
+     """
+     year=str(year)
+     f=open('Cutting_FittingNew/20{}/{}.txt'.format(year, text),"r")
+     lines=f.readlines()
+     Times=[]
+     for x in lines:
+          Times.append(float(x.split(' ')[0]))  
+          
+     f.close()
+     Times = np.array(Times)
+     f1=open('Cutting_FittingNew/FitCoefficients{}.txt'.format(year),"r")
+     lines1=f1.readlines()
+     a=0
+     b=0
+     c=0
+     d=0
+     for x1 in lines1:
+          if str(int(x1.split(' ')[0]))==text:
+               a=float(x1.split(' ')[1])
+               b=float(x1.split(' ')[2])
+               c=float(x1.split(' ')[3])
+               d=float(x1.split(' ')[4])
+          
+     f1.close()
+
+     a=np.array(a)
+     b=np.array(b)
+     c=np.array(c)
+     d=np.array(d)
+     L=a*np.exp(-b*Times)+c*np.exp(-d*Times)
+     
+     return Times, L

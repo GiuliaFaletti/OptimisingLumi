@@ -1,7 +1,7 @@
-####################################################################
-# @Giulia Faletti                                                  #
-# Cutting and Fitting algorithm for the luminosity evolution model #
-####################################################################
+#############################################################################################################
+# @Giulia Faletti                                                                                           #
+# Cutting and Fitting algorithm for the luminosity evolution model considering ATLAS redifined (LUCID) data #
+#############################################################################################################
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -35,18 +35,7 @@ def Cut_Fit(year, text):
         L_evol: raw luminosity data
         Times: raw Unix time
     """
-    year=str(year)
-    f=open('ATLAS/ATLAS_fill_20{}/{}_lumi_ATLAS.txt'.format(year, text),"r")
-    lines=f.readlines()
-    L_evolx=[]
-    times=[]
-    for x in lines:
-        times.append(int(x.split(' ')[0]))  
-        L_evolx.append(float(x.split(' ')[2]))
-        
-    f.close()
-    Times = np.array(times)
-    L_evol = np.array(L_evolx)
+    Times, L_evol= ld.AtlasData(text, year, grl=True)
 
     #deleting the null values of the luminosity
     zero=np.where(L_evol<100)
@@ -112,30 +101,30 @@ def Cut_Fit(year, text):
     model=Model(fit)      
 
     #performing fit 
-    if year=='16':
-        model.set_param_hint('b', value=0.2, min=0, max=50)
-        model.set_param_hint('d', value=0.2, min=0, max=50)
-        model.set_param_hint('a', value=10, min=1, max=8500)
-        model.set_param_hint('c', value=10, min=1, max=8500)
+    if year==16:
+        model.set_param_hint('b', value=0.2, min=0, max=80)
+        model.set_param_hint('d', value=0.2, min=0, max=80)
+        model.set_param_hint('a', value=15, min=1, max=11500)
+        model.set_param_hint('c', value=15, min=1, max=11500)
         fit_result=model.fit(L_fit, x=norm_T_fit, a=10, b=0.2, c=10, d=0.2)
-    elif year=='17':
-        model.set_param_hint('b', value=0.2, min=0, max=50)
-        model.set_param_hint('d', value=0.2, min=0, max=50)
-        model.set_param_hint('a', value=1000, min=1, max=19000)
-        model.set_param_hint('c', value=1000, min=1, max=19000)
+    elif year==17:
+        model.set_param_hint('b', value=0.2, min=0, max=70)
+        model.set_param_hint('d', value=0.2, min=0, max=70)
+        model.set_param_hint('a', value=1000, min=1, max=19500)
+        model.set_param_hint('c', value=1000, min=1, max=19500)
         fit_result=model.fit(L_fit, x=norm_T_fit, a=1000, b=0.2, c=1000, d=0.2)
-    elif year=='18':
-        model.set_param_hint('b', value=0.2, min=0, max=50)
-        model.set_param_hint('d', value=0.2, min=0, max=50)
-        model.set_param_hint('a', value=10, min=1, max=18500)
-        model.set_param_hint('c', value=10, min=1, max=18500)
-        fit_result=model.fit(L_fit, x=norm_T_fit, a=10, b=0.2, c=10, d=0.2)
+    elif year==18:
+        model.set_param_hint('b', value=0.2, min=0, max=30)
+        model.set_param_hint('d', value=0.2, min=0, max=30)
+        model.set_param_hint('a', value=10, min=1, max=16500)
+        model.set_param_hint('c', value=10, min=1, max=16500)
+        fit_result=model.fit(L_fit, x=norm_T_fit, a=1000, b=0.2, c=1000, d=0.2)
 
     #transforming the times from unix in seconds
-    T_fit_real=T_fit-np.amin(T_fit)    
-    Y=fit(T_fit_real, fit_result.params['a'].value, (fit_result.params['b'].value/(np.amax(T_fit)-np.amin(T_fit))), fit_result.params['c'].value, fit_result.params['d'].value/(np.amax(T_fit)-np.amin(T_fit)))
+    T_fit_real=T_fit    
+    Y=fit(T_fit_real, fit_result.params['a'].value, (fit_result.params['b'].value)/(np.amax(T_fit)-np.amin(T_fit)), fit_result.params['c'].value, fit_result.params['d'].value/(np.amax(T_fit)-np.amin(T_fit)))
     
-    return  L_fit, T_fit_real, Y, fit_result.params['a'].value, (fit_result.params['b'].value/(np.amax(T_fit)-np.amin(T_fit))), fit_result.params['c'].value, fit_result.params['d'].value/(np.amax(T_fit)-np.amin(T_fit)), fit_result.redchi, L_evol, Times
+    return  L_fit, T_fit_real,Y, fit_result.params['a'].value, (fit_result.params['b'].value/(np.amax(T_fit)-np.amin(T_fit))), fit_result.params['c'].value, fit_result.params['d'].value/(np.amax(T_fit)-np.amin(T_fit)), fit_result.redchi, L_evol, Times
 
 def Partial_Cut_Fit(year, text, h):
     """Function that performs the necessary cut on the current fill
@@ -151,18 +140,7 @@ def Partial_Cut_Fit(year, text, h):
         c: fitting parameter
         d: fitting parameter
     """
-    year=str(year)
-    f=open('ATLAS/ATLAS_fill_20{}/{}_lumi_ATLAS.txt'.format(year,text),"r")
-    lines=f.readlines()
-    L_evolx=[]
-    times=[]
-    for x in lines:
-        times.append(int(x.split(' ')[0]))  
-        L_evolx.append(float(x.split(' ')[2]))
-          
-    f.close()
-    Times = np.array(times)
-    L_evol = np.array(L_evolx)
+    Times, L_evol= ld.AtlasData(text, year, grl=True)
     
     
     #deleting the null values of the luminosity
@@ -244,19 +222,19 @@ def Partial_Cut_Fit(year, text, h):
     model=Model(fit)    
 
     #performing fit 
-    if year=='16':
+    if year==16:
         model.set_param_hint('b', value=0.2, min=0, max=50)
         model.set_param_hint('d', value=0.2, min=0, max=50)
         model.set_param_hint('a', value=10, min=1, max=8500)
         model.set_param_hint('c', value=10, min=1, max=8500)
         fit_result=model.fit(L_fit, x=norm_T_fit, a=10, b=0.2, c=10, d=0.2)
-    elif year=='17':
+    elif year==17:
         model.set_param_hint('b', value=0.2, min=0, max=50)
         model.set_param_hint('d', value=0.2, min=0, max=50)
         model.set_param_hint('a', value=1000, min=1, max=19000)
         model.set_param_hint('c', value=1000, min=1, max=19000)
         fit_result=model.fit(L_fit, x=norm_T_fit, a=1000, b=0.2, c=1000, d=0.2)
-    elif year=='18':
+    elif year==18:
         model.set_param_hint('b', value=0.2, min=0, max=50)
         model.set_param_hint('d', value=0.2, min=0, max=50)
         model.set_param_hint('a', value=10, min=1, max=18500)
@@ -288,14 +266,14 @@ def PlotLumiEvol(L_fit, T, L, a,b,c,d, text, chi, year, L_ev, Tim):
     ax.set_xlabel('Times [h]')
     ax.set_ylabel('Luminosity evolution [$\mathrm{Hz}/\mathrm{\mu b}$]')
     plt.legend(loc='best')
-    plt.savefig('Cutting_Fitting/20{}_Graphs/{}_LuminosityEvolutionCutFit.pdf'.format(str(year),text))
+    plt.savefig('Cutting_FittingNew/20{}_Graphs/{}_LuminosityEvolutionCutFit.pdf'.format(str(year),text))
     
     fig1, ax1= plt.subplots()
     ax1.plot(Tim, L_ev, "k-")
     ax1.set_title('{}'.format(text))
-    ax1.set_xlabel('Unix Times [s]')
+    ax1.set_xlabel('Times [s]')
     ax1.set_ylabel('Luminosity evolution [$\mathrm{Hz}/\mathrm{\mu b}$]')
-    plt.savefig('Cutting_Fitting/20{}_Graphs/init/{}_LuminosityEvolution.pdf'.format(str(year),text))
+    plt.savefig('Cutting_FittingNew/20{}_Graphs/init/{}_LuminosityEvolution.pdf'.format(str(year),text))
     
     
     fig2, ax2= plt.subplots()
@@ -307,7 +285,9 @@ def PlotLumiEvol(L_fit, T, L, a,b,c,d, text, chi, year, L_ev, Tim):
     ax2.set_xlabel('Times [h]')
     ax2.set_ylabel('Luminosity evolution [$\mathrm{Hz}/\mathrm{\mu b}$]')
     plt.legend(loc='best')
-    plt.savefig('Cutting_Fitting/20{}_Graphs/log/{}_LuminosityEvolutionCutFit_log.pdf'.format(str(year),text))
+    plt.savefig('Cutting_FittingNew/20{}_Graphs/log/{}_LuminosityEvolutionCutFit_log.pdf'.format(str(year),text))
+
+
 
 #selecting current year
 year=18
@@ -321,6 +301,9 @@ plot=True
 
 #loading fill number
 FillNumber16, FillNumber17, FillNumber18 = ld.FillNumber()
+FillNumber17=np.delete(FillNumber17, np.where(FillNumber17==6160)[0])
+
+
 
 #load turnaround times and fill times 
 data_ta16, data_tf16, data_ta17, data_tf17, data_ta18, data_tf18 = ld.loadFill()
@@ -350,32 +333,32 @@ elif year==18:
      
 
 if PartialKnowledge==True:
-    with open('Cutting_Fitting/FitCoefficients{}_{}h.txt'.format(str(year), str(h)), 'w') as f:
+    with open('Cutting_FittingNew/FitCoefficients{}_{}h.txt'.format(str(year), str(h)), 'w') as f:
         f.write('')
         f.close()    
         
 elif PartialKnowledge==False:
-    with open('Cutting_Fitting/FitCoefficients{}.txt'.format(str(year)), 'w') as f:
+    with open('Cutting_FittingNew/FitCoefficients{}.txt'.format(str(year)), 'w') as f:
         f.write('')
         f.close()     
     
     for i in range(len(FillNumber)):
         text = str(int(FillNumber[i])) #number of current fill
-        with open('Cutting_Fitting/20{}/{}.txt'.format(str(year),text), 'w') as f:
+        with open('Cutting_FittingNew/20{}/{}.txt'.format(str(year),text), 'w') as f:
             f.write('')
             f.close()  
 
     
 for i in range(len(FillNumber)):
     text = str(int(FillNumber[i])) #number of current fill
-
+    
     if PartialKnowledge==True:
         
         #performing the cutting and fitting algorithm
         A,B,C,D = Partial_Cut_Fit(year, text, h)
     
         #saving the results
-        with open('Cutting_Fitting/FitCoefficients{}_{}h.txt'.format(str(year), str(h)), 'a') as f:
+        with open('Cutting_FittingNew/FitCoefficients{}_{}h.txt'.format(str(year), str(h)), 'a') as f:
             f.write(text)
             f.write(' ')
             f.write(str(A))
@@ -391,19 +374,19 @@ for i in range(len(FillNumber)):
         
         #performing the cutting and fitting algorithm
         L_fit, T, L, a,b,c,d, chi, L_ev, Tim= Cut_Fit(year, text)
-        
+    
         if plot==True:
             PlotLumiEvol(L_fit, T, L, a,b,c,d, text, chi, year, L_ev, Tim)
         
         #saving results
         for x in range(len(T)):
-            with open('Cutting_Fitting/20{}/{}.txt'.format(str(year),text), 'a') as f:
+            with open('Cutting_FittingNew/20{}/{}.txt'.format(str(year),text), 'a') as f:
                 f.write(str(T[x]))
                 f.write(' ')
                 f.write(str(L_fit[x]))
                 f.write('\n')
                 
-        with open('Cutting_Fitting/FitCoefficients{}.txt'.format(str(year)), 'a') as f:
+        with open('Cutting_FittingNew/FitCoefficients{}.txt'.format(str(year)), 'a') as f:
             f.write(text)
             f.write(' ')
             f.write(str(a))
@@ -415,5 +398,3 @@ for i in range(len(FillNumber)):
             f.write(str(d))
             f.write('\n')
             
-        
-    

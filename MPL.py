@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import LoadData as ld
 from lmfit import Model
 import scipy.integrate as integrate
+from statistics import mode
 
 #Font setting
 plt.rcParams.update({
@@ -22,7 +23,6 @@ FillNumber16, FillNumber17, FillNumber18 = ld.FillNumber()
 #defining the fit function
 def fit(x, a, b, c, d):
         return (a*np.exp((-b)*x))+(c*np.exp((-d)*x))
-
 
 def CuttingAlgorithm(year, text):
     """Function that performs the necessary cut on the current fill
@@ -151,12 +151,79 @@ def PeakLumi(year, text):
     Returns:
         float: peak luminosity
     """
-    T_fit_real, Y, a, b, c, d = CuttingAlgorithm(year, text)  
-    peak=Y[0]
+    Times,a1,b1,c1,d1=ld.CuttedData(year, text)
+    #T_fit_real, Y, a1,b1,c1,d1=CuttingAlgorithm(year, text)
+    peak=a1+c1 
     return peak
 
-def SpeedUpMPL(Lpeak, year, fill):
-    """Function that evaluates the Most Probable Luminosity.
+def NormMPL(Lpeak, year, fill):
+    """Function that evaluates the Most Probable Luminosity, with normalization to the current fill's peak luminosity.
+
+    Args:
+        Lpeak (_type_): peak luminosity of the current fill
+        year (int): current year
+        fill (int): current fill number
+
+    Returns:
+        Tmp: most probable times
+        Lmp: most probable luminoisties
+    """
+    
+    #defining the mostprobable sampling
+    sampling=np.arange(0, 30*3600, 60)
+    
+    #defining the fit function
+    def fit(x, a, b, c, d):
+        return (a*np.exp((-b)*x))+(c*np.exp((-d)*x))
+
+    
+    if year==16:
+        FillNumber=FillNumber16
+
+    elif year==17:
+        FillNumber=FillNumber17
+        FillNumber_Prev=FillNumber16
+        previous_year=16
+    elif year==18:
+        FillNumber=FillNumber18
+        FillNumber_Prev=FillNumber17
+        previous_year=17
+  
+    Lmp=[]
+    #Lpm=[]
+    for samp in sampling:
+        Lsamp=[]
+        Lpmsamp=[]
+        for i1 in range(len(FillNumber_Prev)):
+            text = str(int(FillNumber_Prev[i1])) 
+            #T_fit_real, Y, a1,b1,c1,d1=CuttingAlgorithm(previous_year, text)
+            Times,a1,b1,c1,d1=ld.CuttedData(previous_year, text)
+            Li1=fit(samp, a1, b1, c1, d1)
+            L1=Li1*(Lpeak/(a1+c1)) #normalisation
+            #Lpm.append(a1+c1)
+            Lsamp.append(L1)
+    
+        for i2 in range(len(FillNumber[:(np.where(FillNumber==(fill))[0][0])])):
+            text = str(int(FillNumber[i2])) 
+            #T_fit_real, Y2, a2,b2,c2,d2=CuttingAlgorithm(year, text)
+            Times2,a2,b2,c2,d2=ld.CuttedData(year, text)
+            Li2=fit(samp, a2, b2, c2, d2)
+            L2=Li2*(Lpeak/(a2+c2)) #normalisation
+            #Lpm.append(a2+c2)
+            Lsamp.append(L2)
+                
+        #evaluating the mode
+        mode1=mode(Lsamp)
+        
+        
+        Lmp.append(mode1)
+
+    #LpeakMode=mode(Lpm)
+    Lmp=np.array(Lmp) #nuova rinormalizzazione valutando la media delle lumnoistà di picco? x(Lmodapicco(0)/Lmp(0))
+    return sampling, Lmp #LpeakMode
+
+def MPL(year, fill):
+    """Function that evaluates the Most Probable Luminosity without normalization to the current fill.
 
     Args:
         Lpeak (_type_): peak luminosity of the current fill
@@ -183,39 +250,173 @@ def SpeedUpMPL(Lpeak, year, fill):
         FillNumber_Prev=FillNumber17
         previous_year=17
 
-    #cleaning file
-    with open('MPL/Lmp{}.txt'.format(str(year)), 'w') as f:
-        f.write('')
-        f.close()
+    Lmp=[]
+    for samp in sampling:
+        Lsamp=[]
+        for i1 in range(len(FillNumber_Prev)):
+            text = str(int(FillNumber_Prev[i1])) 
+            #T_fit_real, Y, a1,b1,c1,d1=CuttingAlgorithm(previous_year, text)
+            Times,a1,b1,c1,d1=ld.CuttedData(previous_year, text)
+            Li1=fit(samp, a1, b1, c1, d1)
+            Lsamp.append(Li1)
+    
+        for i2 in range(len(FillNumber[:(np.where(FillNumber==(fill))[0][0])])):
+            text = str(int(FillNumber[i2])) 
+            Times,a2,b2,c2,d2=ld.CuttedData(year, text)
+            Li2=fit(samp, a2, b2, c2, d2)
+            Lsamp.append(Li2)
+                
+        #evaluating the mode
+        mode1=mode(Lsamp)
+        
+        Lmp.append(mode1)
+    
+    Lmp=np.array(Lmp)
+    return sampling, Lmp
 
+
+
+
+
+#FillNumber17=np.delete(FillNumber17, np.where(FillNumber17==6160)[0])
+
+def PeakLumiNew(year, text):
+    """Function that returns the peak luminosity of the current fill.
+
+    Args:
+        year (int): current year
+        text (str): current fill
+
+    Returns:
+        float: peak luminosity
+    """
+    FillNumber17=np.delete(FillNumber17, np.where(FillNumber17==6160)[0])
+    Times,a1,b1,c1,d1=ld.CuttedNewData(year, text)
+    #T_fit_real, Y, a1,b1,c1,d1=CuttingAlgorithm(year, text)
+    peak=a1+c1 
+    return peak
+
+def NormMPLNew(Lpeak, year, fill):
+    """Function that evaluates the Most Probable Luminosity, with normalization to the current fill's peak luminosity.
+
+    Args:
+        Lpeak (_type_): peak luminosity of the current fill
+        year (int): current year
+        fill (int): current fill number
+
+    Returns:
+        Tmp: most probable times
+        Lmp: most probable luminoisties
+    """
+    FillNumber17=np.delete(FillNumber17, np.where(FillNumber17==6160)[0])
+    
+    #defining the mostprobable sampling
+    sampling=np.arange(0, 30*3600, 60)
+    
+    #defining the fit function
+    def fit(x, a, b, c, d):
+        return (a*np.exp((-b)*x))+(c*np.exp((-d)*x))
+
+    
+    if year==16:
+        FillNumber=FillNumber16
+
+    elif year==17:
+        FillNumber=FillNumber17
+        FillNumber_Prev=FillNumber16
+        previous_year=16
+    elif year==18:
+        FillNumber=FillNumber18
+        FillNumber_Prev=FillNumber17
+        previous_year=17
+  
+    Lmp=[]
+    #Lpm=[]
+    for samp in sampling:
+        Lsamp=[]
+        Lpmsamp=[]
+        for i1 in range(len(FillNumber_Prev)):
+            if FillNumber[i1]==6160:
+                continue
+            text = str(int(FillNumber_Prev[i1])) 
+            #T_fit_real, Y, a1,b1,c1,d1=CuttingAlgorithm(previous_year, text)
+            Times,a1,b1,c1,d1=ld.CuttedNewData(previous_year, text)
+            Li1=fit(samp, a1, b1, c1, d1)
+            L1=Li1*(Lpeak/(a1+c1)) #normalisation
+            #Lpm.append(a1+c1)
+            Lsamp.append(L1)
+    
+        for i2 in range(len(FillNumber[:(np.where(FillNumber==(fill))[0][0])])):
+            if FillNumber[i2]==6160:
+                continue
+            text = str(int(FillNumber[i2])) 
+            #T_fit_real, Y2, a2,b2,c2,d2=CuttingAlgorithm(year, text)
+            Times2,a2,b2,c2,d2=ld.CuttedNewData(year, text)
+            Li2=fit(samp, a2, b2, c2, d2)
+            #print(text, a2,c2)
+            L2=Li2*(Lpeak/(a2+c2)) #normalisation
+            #Lpm.append(a2+c2)
+            Lsamp.append(L2)
+                
+        #evaluating the mode
+        mode1=mode(Lsamp)
+        
+        
+        Lmp.append(mode1)
+
+    #LpeakMode=mode(Lpm)
+    Lmp=np.array(Lmp) #nuova rinormalizzazione valutando la media delle lumnoistà di picco? x(Lmodapicco(0)/Lmp(0))
+    return sampling, Lmp #LpeakMode
+
+def MPLNew(year, fill):
+    """Function that evaluates the Most Probable Luminosity without normalization to the current fill.
+
+    Args:
+        Lpeak (_type_): peak luminosity of the current fill
+        year (int): current year
+        fill (int): currebt fill number
+
+    Returns:
+        Tmp: most probable times
+        Lmp: most probable luminoisties
+    """
+    FillNumber17=np.delete(FillNumber17, np.where(FillNumber17==6160)[0])
+    #defining the mostprobable sampling
+    sampling=np.arange(0, 30*3600, 60)
+    
+    if year==16:
+        FillNumber=FillNumber16
+
+    elif year==17:
+        FillNumber=FillNumber17
+        FillNumber_Prev=FillNumber16
+        previous_year=16
+    elif year==18:
+        FillNumber=FillNumber18
+        FillNumber_Prev=FillNumber17
+        previous_year=17
 
     Lmp=[]
     for samp in sampling:
         Lsamp=[]
         for i1 in range(len(FillNumber_Prev)):
             text = str(int(FillNumber_Prev[i1])) 
-            T_fit_real, Y, a1,b1,c1,d1=CuttingAlgorithm(previous_year, text)
-            Li=fit(samp, a1, b1, c1, d1)
-            L=Li*(Y[0]/Lpeak) #normalisation
-            Lsamp.append(L)
+            #T_fit_real, Y, a1,b1,c1,d1=CuttingAlgorithm(previous_year, text)
+            Times,a1,b1,c1,d1=ld.CuttedNewData(previous_year, text)
+            Li1=fit(samp, a1, b1, c1, d1)
+            Lsamp.append(Li1)
     
-        for i2 in range(len(FillNumber[:(np.where(FillNumber==(fill))[0][0]+1)])):
+        for i2 in range(len(FillNumber[:(np.where(FillNumber==(fill))[0][0])])):
             text = str(int(FillNumber[i2])) 
-            T_fit_real, Y, a2,b2,c2,d2=CuttingAlgorithm(year, text)
-            Li=fit(samp, a2, b2, c2, d2)
-            L=Li*(Y[0]/Lpeak) #normalisation
-            Lsamp.append(L)
+            Times,a2,b2,c2,d2=ld.CuttedNewData(year, text)
+            Li2=fit(samp, a2, b2, c2, d2)
+            Lsamp.append(Li2)
                 
         #evaluating the mode
-        counts1, bins1=np.histogram(Lsamp)
-        max_bin1=np.argmax(counts1)
-        mode1=bins1[max_bin1:max_bin1+2].mean()
+        mode1=mode(Lsamp)
         
         Lmp.append(mode1)
-        with open('MPL/Lmp{}.txt'.format(str(year)), 'a') as f:
-            f.write(str(mode1))
-            f.write('\n')
-            f.close()
     
     Lmp=np.array(Lmp)
     return sampling, Lmp
+

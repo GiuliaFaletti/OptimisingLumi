@@ -16,6 +16,7 @@ year=18
 #loading fill number
 FillNumber16, FillNumber17, FillNumber18 = ld.FillNumber()
 
+
 #load turnaround times and fill times - cheking
 data_ta16, data_tf16, data_ta17, data_tf17, data_ta18, data_tf18 = ld.loadFill()
 data_ta16_sec = data_ta16*3600 
@@ -31,11 +32,11 @@ if year==16:
     ta=data_ta16_sec
     tf=data_tf16_sec
 elif year==17:
-    FillNumber=FillNumber17
+    FillNumber=np.delete(FillNumber17, np.where(FillNumber17==6160)[0])
     FillNumber_Prev=FillNumber16
     previous_year=16
-    ta=data_ta17_sec
-    tf=data_tf17_sec
+    ta=np.delete(data_ta17_sec, np.where(FillNumber17==6160)[0])
+    tf=np.delete(data_tf17_sec, np.where(FillNumber17==6160)[0])
 elif year==18:
     FillNumber=FillNumber18
     FillNumber_Prev=FillNumber17
@@ -43,9 +44,7 @@ elif year==18:
     ta=data_ta18_sec
     tf=data_tf18_sec
 
-
-
-f=open('Cutting_Fitting/FitCoefficients{}.txt'.format(str(year)),"r")
+f=open('Cutting_FittingNew/FitCoefficients{}.txt'.format(str(year)),"r")
 lines=f.readlines()
 a=[]
 b=[]
@@ -106,14 +105,13 @@ bnd=list
 res = minimize(fun, x0, options={'disp': True, 'maxiter':10000}, constraints={'type':'eq', 'fun': cons, 'jac': lambda x: np.ones(len(x0))}, jac=jacb, method='SLSQP', bounds=bnd) #      
 
 #saving optimized times
-with open('NumericalOptimization/res_opt_20{}.txt'.format(str(year)), 'w') as f:
+with open('NumericalOptimizationNew/res_opt_20{}.txt'.format(str(year)), 'w') as f:
         f.write('')
         f.close()
 for el in res.x:
-    with open('NumericalOptimization/res_opt_20{}.txt'.format(str(year)), 'a') as f:
+    with open('NumericalOptimizationNew/res_opt_20{}.txt'.format(str(year)), 'a') as f:
         f.write(str(el))
         f.write('\n')
-
 
 
 plot=True
@@ -127,7 +125,7 @@ if plot==True:
     ax1.set_ylabel(r'Normalised Frequencies')
     ax1.set_title('20{}'.format(year))
     plt.legend(loc='best')
-    plt.savefig('NumericalOptimization/20{}_times.pdf'.format(year))
+    plt.savefig('NumericalOptimizationNew/20{}_times.pdf'.format(year))
     
     Lmes16,Lmes17,Lmes18=ld.MeasuredLuminosity()
     
@@ -156,4 +154,4 @@ if plot==True:
     ax1.set_ylabel('Normalised Frequencies')
     ax1.set_title('20{}'.format(year))
     plt.legend(loc='upper left')
-    plt.savefig('NumericalOptimization/20{}_lumi.pdf'.format(year))
+    plt.savefig('NumericalOptimizationNew/20{}_lumi.pdf'.format(year))
